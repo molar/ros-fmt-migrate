@@ -15,6 +15,7 @@
 #include "clang/Tooling/Transformer/RangeSelector.h"
 #include "clang/Tooling/Transformer/RewriteRule.h"
 #include "clang/Tooling/Transformer/Transformer.h"
+#include <iostream>
 #include <sstream>
 
 using namespace clang::ast_matchers;
@@ -57,13 +58,18 @@ public:
   }
 
   std::string getFormatString() {
+    // ignore first entry which is the target string stream
+    std::vector<std::string> Strings{FmtStringComponents.begin() + 1,
+                                     FmtStringComponents.end()};
+    std::vector<std::string> Args{FmtArgsComponents.begin() + 1,
+                                  FmtArgsComponents.end()};
     std::stringstream Ss;
     Ss << "fmt::format(\"";
-    for (const auto &Fmt : FmtStringComponents) {
+    for (const auto &Fmt : Strings) {
       Ss << Fmt;
     }
     Ss << "\"";
-    for (const auto &Arg : FmtArgsComponents) {
+    for (const auto &Arg : Args) {
       Ss << "," << Arg;
     }
     Ss << ")";
@@ -125,11 +131,6 @@ void visitArg(const clang::Expr &A, FormatStringBuilder &FSB) {
                  llvm::dyn_cast<const clang::IntegerLiteral>(&A)) {
     FSB.addIntegerLiteral(*Lit);
   } else {
-    if (const auto *DeclRef = llvm::dyn_cast<const clang::DeclRefExpr>(&A)) {
-      if (DeclRef->getNameInfo().getName().getAsString() == "ss") {
-        return;
-      }
-    }
     FSB.addFormatExpr(A);
   }
 }
