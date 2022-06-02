@@ -5,7 +5,10 @@ find_package(Clang REQUIRED CONFIG NO_DEFAULT_PATH PATHS /usr/lib/llvm-14/lib/cm
 find_package(roscpp REQUIRED)
 include_directories(${CLANG_INCLUDE_DIRS})
 
-add_library(MyLint SHARED main.cpp RosstreamtofmtCheck.cpp)
+add_library(MyLint SHARED main.cpp 
+  RosstreamtofmtCheck.cpp
+  HeaderincludeguardCheck.cpp
+  )
 target_link_libraries(MyLint 
   clangTidy
   clangTooling

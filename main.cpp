@@ -1,4 +1,5 @@
 // File lifted from /clang-tools-extra/test/clang-tidy/CTTestTidyModule.cpp
+#include "HeaderincludeguardCheck.h"
 #include "RosstreamtofmtCheck.h"
 #include "clang-tidy/ClangTidy.h"
 #include "clang-tidy/ClangTidyCheck.h"
@@ -18,6 +19,8 @@ public:
   void addCheckFactories(ClangTidyCheckFactories &CheckFactories) override {
     CheckFactories.registerCheck<modernize::RosstreamtofmtCheck>(
         "mir-rosstreamfmt");
+    CheckFactories.registerCheck<myplugin::MyHeaderGuardCheck>(
+        "mir-headercheck");
   }
 };
 } // namespace

@@ -14,3 +14,5 @@ This project demonstrates how to write an external (out-of-llvm-source) plugin f
     # back in the main dir
     clang-tidy-14 --load=$PWD/build/libMyLint.so -checks=mir-rosstreamfmt  -header-filter=.\* -system-headers examples/ex1.cpp
 
+    # try the header include guard plugin
+    clang-tidy-14 --load=$PWD/build/libMyLint.so  -checks=mir-headercheck examples/header1.h -fix
