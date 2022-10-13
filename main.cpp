@@ -1,5 +1,6 @@
 // File lifted from /clang-tools-extra/test/clang-tidy/CTTestTidyModule.cpp
 #include "HeaderincludeguardCheck.h"
+#include "ReorderCtorInitializer.h"
 #include "RosstreamtofmtCheck.h"
 #include "clang-tidy/ClangTidy.h"
 #include "clang-tidy/ClangTidyCheck.h"
@@ -21,6 +22,8 @@ public:
         "mir-rosstreamfmt");
     CheckFactories.registerCheck<myplugin::MyHeaderGuardCheck>(
         "mir-headercheck");
+    CheckFactories.registerCheck<modernize::ReorderCtorInitializer>(
+        "mir-reorder");
   }
 };
 } // namespace

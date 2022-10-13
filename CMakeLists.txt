@@ -8,9 +8,11 @@ include_directories(${CLANG_INCLUDE_DIRS})
 add_library(MyLint SHARED main.cpp 
   RosstreamtofmtCheck.cpp
   HeaderincludeguardCheck.cpp
+  ReorderCtorInitializer.cpp
   )
 target_link_libraries(MyLint 
   clangTidy
+  clangTidyUtils
   clangTooling
   )
 
