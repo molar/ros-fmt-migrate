@@ -1,5 +1,6 @@
 // File lifted from /clang-tools-extra/test/clang-tidy/CTTestTidyModule.cpp
 #include "HeaderincludeguardCheck.h"
+#include "MoveConstantInitToDeclaration.h"
 #include "ReorderCtorInitializer.h"
 #include "RosstreamtofmtCheck.h"
 #include "clang-tidy/ClangTidy.h"
@@ -24,6 +25,8 @@ public:
         "mir-headercheck");
     CheckFactories.registerCheck<modernize::ReorderCtorInitializer>(
         "mir-reorder");
+    CheckFactories.registerCheck<modernize::MoveConstantInitToDeclaration>(
+        "mir-move-init");
   }
 };
 } // namespace

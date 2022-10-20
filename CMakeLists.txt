@@ -9,6 +9,7 @@ add_library(MyLint SHARED main.cpp
   RosstreamtofmtCheck.cpp
   HeaderincludeguardCheck.cpp
   ReorderCtorInitializer.cpp
+  MoveConstantInitToDeclaration.cpp
   )
 target_link_libraries(MyLint 
   clangTidy

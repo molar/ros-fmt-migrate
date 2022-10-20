@@ -6,6 +6,7 @@ class A {
 public:
   A() : e_(1), b_(1), a_(b_) {}
   A(int k, double af) {}
+  A(int b) : b_(2) {}
 
 private:
   int a_;
