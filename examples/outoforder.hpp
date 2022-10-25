@@ -20,10 +20,11 @@ private:
 class B : public A {
 public:
   B() : g_(21), f_(21), A{2, 23.1} {}
+  B(int a, int b) : f_(21), A{2, 23.1} {}
 
 private:
   int f_;
-  int g_;
+  int g_{21};
 };
 
 #endif
