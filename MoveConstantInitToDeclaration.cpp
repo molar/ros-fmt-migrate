@@ -53,6 +53,9 @@ void MoveConstantInitToDeclaration::registerMatchers(MatchFinder *Finder) {
 }
 
 template <typename T> bool compare_literal(const T &a, const T &b) {
+  a.getValue().dump();
+  b.getValue().dump();
+
   return a.getValue() == b.getValue();
 }
 
@@ -68,9 +71,20 @@ bool compare(llvm::SmallVector<const CXXCtorInitializer *> Inits) {
   const bool same_or_none_init_val = [&Inits, &head]() {
     if (Inits.front()->getMember()->hasInClassInitializer()) {
       auto InitExpr = Inits.front()->getMember()->getInClassInitializer();
-      if (llvm::isa<T>(InitExpr)) {
-        auto InitValInClass = llvm::cast<T>(InitExpr);
-        return compare_literal(*InitValInClass, *head);
+      // this can be a initializer list, or other kind, we need to match here
+      if (llvm::isa<InitListExpr>(InitExpr)) {
+        auto InitList = llvm::cast<InitListExpr>(InitExpr);
+        if (InitList->getNumInits() == 1) {
+          auto TheInit = InitList->getInit(0);
+          if (llvm::isa<T>(TheInit)) {
+            auto InitValInClass = llvm::cast<T>(TheInit);
+            return compare_literal(*InitValInClass, *head);
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
       } else {
         return false;
       }
@@ -140,7 +154,9 @@ void MoveConstantInitToDeclaration::check(
       for (const auto Init : Inits) {
         Diag << FixItHint::CreateRemoval(Init->getSourceRange());
       }
-      Diag << FixItHint::CreateReplacement(Field->getSourceRange(), ss.str());
+      if (!Field->hasInClassInitializer()) {
+        Diag << FixItHint::CreateReplacement(Field->getSourceRange(), ss.str());
+      }
     }
   }
 }
