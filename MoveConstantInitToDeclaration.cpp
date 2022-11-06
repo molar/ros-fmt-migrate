@@ -65,12 +65,24 @@ bool compare_literal(const clang::StringLiteral &a,
 template <typename T>
 bool compare(llvm::SmallVector<const CXXCtorInitializer *> Inits) {
   auto head = llvm::cast<T>(Inits.front()->getInit());
+  const bool same_or_none_init_val = [&Inits, &head]() {
+    if (Inits.front()->getMember()->hasInClassInitializer()) {
+      auto InitExpr = Inits.front()->getMember()->getInClassInitializer();
+      if (llvm::isa<T>(InitExpr)) {
+        auto InitValInClass = llvm::cast<T>(InitExpr);
+        return compare_literal(*InitValInClass, *head);
+      } else {
+        return false;
+      }
+    }
+    return true;
+  }();
   return std::all_of(std::next(Inits.begin()), Inits.end(),
                      [head](const auto &val) {
                        return compare_literal(*head,
                                               *llvm::cast<T>(val->getInit()));
                      }) &&
-         !Inits.front()->getMember()->hasInClassInitializer();
+         same_or_none_init_val;
 }
 
 void MoveConstantInitToDeclaration::check(
