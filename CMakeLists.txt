@@ -1,7 +1,7 @@
 project(ExternalClangTidyModule)
 cmake_minimum_required(VERSION 3.18)
 # Find CMake file for Clang
-find_package(Clang REQUIRED CONFIG NO_DEFAULT_PATH PATHS /usr/lib/llvm-14/lib/cmake)
+find_package(Clang REQUIRED CONFIG NO_DEFAULT_PATH PATHS /usr/lib/llvm-15/lib/cmake)
 find_package(roscpp REQUIRED)
 include_directories(${CLANG_INCLUDE_DIRS})
 

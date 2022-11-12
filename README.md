@@ -5,6 +5,8 @@ depending on how your upstream llvm compiler was built you might need different 
 
 ## instructions
 
+    # deps for clang 
+    sudo apt install libclang-15-dev clang-15 clang-tidy-15
     # deps for the example
     sudo apt install ros-base
     # cmake
@@ -13,7 +15,7 @@ depending on how your upstream llvm compiler was built you might need different 
     ninja
 
     # back in the main dir
-    clang-tidy-14 --load=$PWD/build/libMyLint.so -checks=mir-rosstreamfmt  -header-filter=.\* -system-headers examples/ex1.cpp
+    clang-tidy-15 --load=$PWD/build/libMyLint.so -checks=mir-rosstreamfmt  -header-filter=.\* -system-headers examples/ex1.cpp
 
     # try the header include guard plugin
-    clang-tidy-14 --load=$PWD/build/libMyLint.so  -checks=mir-headercheck examples/header1.h -fix
+    clang-tidy-15 --load=$PWD/build/libMyLint.so  -checks=mir-headercheck examples/header1.h -fix
