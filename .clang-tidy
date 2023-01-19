@@ -1,4 +1,4 @@
-Checks:           'mir-headercheck'
+Checks:           'mir-rosstreamfmt'
 
 WarningsAsErrors:  '*'
 

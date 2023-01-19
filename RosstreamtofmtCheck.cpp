@@ -7,6 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "RosstreamtofmtCheck.h"
+
+#include <iostream>
+#include <sstream>
+
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -15,8 +19,6 @@
 #include "clang/Tooling/Transformer/RangeSelector.h"
 #include "clang/Tooling/Transformer/RewriteRule.h"
 #include "clang/Tooling/Transformer/Transformer.h"
-#include <iostream>
-#include <sstream>
 
 using namespace clang::ast_matchers;
 
@@ -32,7 +34,8 @@ inline auto getRosLoggers() {
       clang::ast_matchers::isExpandedFromMacro("ROS_FATAL_STREAM"));
 }
 
-template <typename T> inline auto getLogExpression(T Matchers) {
+template <typename T>
+inline auto getLogExpression(T Matchers) {
   using namespace clang::ast_matchers;
   return compoundStmt(
       Matchers,
@@ -41,7 +44,7 @@ template <typename T> inline auto getLogExpression(T Matchers) {
 }
 
 class FormatStringBuilder {
-public:
+ public:
   FormatStringBuilder(clang::SourceManager &Sm) : Sm(Sm) {}
   void addStringLiteral(const clang::StringLiteral &Sl) {
     auto Str = Sl.getString();
@@ -76,9 +79,8 @@ public:
     return Ss.str();
   }
 
-private:
+ private:
   llvm::StringRef getExprAsString(const clang::Expr &Ex) {
-
     auto Range = Ex.getSourceRange();
 
     clang::LangOptions Lo;
@@ -104,7 +106,7 @@ void visitCallExpr(const clang::Expr &A0, const clang::Expr &A1,
 void visitArg(const clang::Expr &A, FormatStringBuilder &FSB) {
   if (const clang::CXXOperatorCallExpr *Oper =
           llvm::dyn_cast<const clang::CXXOperatorCallExpr>(
-              &A)) // CXXOperatorCall("<<")
+              &A))  // CXXOperatorCall("<<")
   {
     if (Oper->getOperator() == clang::OverloadedOperatorKind::OO_LessLess) {
       visitCallExpr(*Oper->getArg(0), *Oper->getArg(1), FSB);
@@ -155,13 +157,13 @@ void RosstreamtofmtCheck::check(const MatchFinder::MatchResult &Result) {
     FormatStringBuilder FSB(*Result.SourceManager);
     visitCallExpr(*Arg0, *Arg1, FSB);
     auto FormatString = FSB.getFormatString();
-    auto Diag = diag(FS->getBeginLoc(), "Rewrite to use format style instead",
-                     DiagnosticIDs::Warning);
     auto Expand = Result.SourceManager->getExpansionRange(FS->getSourceRange());
+    auto Diag = diag(Expand.getBegin(), "Rewrite to use format style instead",
+                     DiagnosticIDs::Warning);
     Diag << FixItHint::CreateReplacement(Expand.getAsRange(), FormatString);
   }
 }
 
-} // namespace modernize
-} // namespace tidy
-} // namespace clang
+}  // namespace modernize
+}  // namespace tidy
+}  // namespace clang
