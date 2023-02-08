@@ -8,6 +8,8 @@
 
 #include "RosstreamtofmtCheck.h"
 
+#include <llvm-15/llvm/Support/raw_ostream.h>
+
 #include <iostream>
 #include <sstream>
 
@@ -25,27 +27,32 @@ using namespace clang::ast_matchers;
 namespace clang {
 namespace tidy {
 namespace modernize {
+// from ASTMatchers Internal
+
 inline auto getRosLoggers() {
-  return clang::ast_matchers::anyOf(
-      clang::ast_matchers::isExpandedFromMacro("ROS_DEBUG_STREAM"),
-      clang::ast_matchers::isExpandedFromMacro("ROS_INFO_STREAM"),
-      clang::ast_matchers::isExpandedFromMacro("ROS_WARN_STREAM"),
-      clang::ast_matchers::isExpandedFromMacro("ROS_ERROR_STREAM"),
-      clang::ast_matchers::isExpandedFromMacro("ROS_FATAL_STREAM"));
+  return anyOf(
+      compoundStmt(isExpandedFromMacro("ROS_DEBUG_STREAM")).bind("debug"),
+      compoundStmt(isExpandedFromMacro("ROS_INFO_STREAM")).bind("info"),
+      compoundStmt(isExpandedFromMacro("ROS_WARN_STREAM")).bind("warn"),
+      compoundStmt(isExpandedFromMacro("ROS_ERROR_STREAM")).bind("error"),
+      compoundStmt(isExpandedFromMacro("ROS_FATAL_STREAM")).bind("fatal"));
 }
 
 template <typename T>
 inline auto getLogExpression(T Matchers) {
   using namespace clang::ast_matchers;
   return compoundStmt(
-      Matchers,
-      hasDescendant(cxxOperatorCallExpr(hasOperatorName("<<")).bind("logcode")),
-      isExpansionInMainFile());
+             Matchers,
+             hasDescendant(
+                 cxxOperatorCallExpr(hasOperatorName("<<")).bind("logcode")),
+             isExpansionInMainFile())
+      .bind("logexpr");
 }
 
 class FormatStringBuilder {
  public:
-  FormatStringBuilder(clang::SourceManager &Sm) : Sm(Sm) {}
+  FormatStringBuilder(clang::SourceManager &Sm, std::string LoggerName)
+      : Sm(Sm), LoggerTo{LoggerName} {}
   void addStringLiteral(const clang::StringLiteral &Sl) {
     auto Str = Sl.getString();
     FmtStringComponents.push_back(Str.str());
@@ -67,7 +74,7 @@ class FormatStringBuilder {
     std::vector<std::string> Args{FmtArgsComponents.begin() + 1,
                                   FmtArgsComponents.end()};
     std::stringstream Ss;
-    Ss << "fmt::format(\"";
+    Ss << LoggerTo << "(\"";
     for (const auto &Fmt : Strings) {
       Ss << Fmt;
     }
@@ -80,6 +87,7 @@ class FormatStringBuilder {
   }
 
  private:
+  std::string LoggerTo;
   llvm::StringRef getExprAsString(const clang::Expr &Ex) {
     auto Range = Ex.getSourceRange();
 
@@ -145,21 +153,37 @@ void visitCallExpr(const clang::Expr &A0, const clang::Expr &A1,
 
 void RosstreamtofmtCheck::registerMatchers(MatchFinder *Finder) {
   auto Matcher = getLogExpression(getRosLoggers());
-  clang::ast_matchers::StatementMatcher MyMatch = Matcher.bind("log");
   Finder->addMatcher(Matcher, this);
 }
 
 void RosstreamtofmtCheck::check(const MatchFinder::MatchResult &Result) {
+  std::string logger_detected = "unknown";
+  const auto &map = Result.Nodes.getMap();
+  for (const std::string &logger :
+       {"debug", "info", "warn", "error", "fatal"}) {
+    if (map.find(logger) != map.end()) {
+      logger_detected = logger;
+      break;
+    }
+  }
+
+  std::stringstream Ss;
+  std::transform(logger_detected.begin(), logger_detected.end(),
+                 logger_detected.begin(), ::toupper);
+  Ss << "ROSFMT_" << logger_detected;
+
   if (const clang::CXXOperatorCallExpr *FS =
           Result.Nodes.getNodeAs<clang::CXXOperatorCallExpr>("logcode")) {
     const auto *Arg0 = FS->getArg(0);
     const auto *Arg1 = FS->getArg(1);
-    FormatStringBuilder FSB(*Result.SourceManager);
+
+    FormatStringBuilder FSB(*Result.SourceManager, Ss.str());
     visitCallExpr(*Arg0, *Arg1, FSB);
     auto FormatString = FSB.getFormatString();
     auto Expand = Result.SourceManager->getExpansionRange(FS->getSourceRange());
-    auto Diag = diag(Expand.getBegin(), "Rewrite to use format style instead",
-                     DiagnosticIDs::Warning);
+    Ss.str("");
+    Ss << "Rewrite to use format style instead " << FormatString;
+    auto Diag = diag(Expand.getBegin(), Ss.str(), DiagnosticIDs::Warning);
     Diag << FixItHint::CreateReplacement(Expand.getAsRange(), FormatString);
   }
 }
