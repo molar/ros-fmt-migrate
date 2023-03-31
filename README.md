@@ -8,4 +8,6 @@ depending on how your upstream llvm compiler was built you might need different 
 ```
 bazel test //...
 bazel run //:run --  --checks="-*,mir-*" $PWD/examples/ex1.cpp
+# or 
+bazel run //:run --  --checks="-*,mir-*" $PWD/examples/ex1.cpp --extra-arg=-I/opt/ros/noetic/include
 ```

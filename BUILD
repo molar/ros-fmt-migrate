@@ -24,6 +24,7 @@ cc_binary(
         "RosstreamtofmtCheck.cpp",
         "RosstreamtofmtCheck.h",
         "main.cpp",
+        "utils.hpp",
     ],
     copts = [
         "-Iexternal/llvm_toolchain_llvm/include",

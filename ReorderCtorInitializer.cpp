@@ -8,6 +8,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "ReorderCtorInitializer.h"
+
+#include <iostream>
+#include <sstream>
+
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -16,35 +20,15 @@
 #include "clang/Tooling/Transformer/RangeSelector.h"
 #include "clang/Tooling/Transformer/RewriteRule.h"
 #include "clang/Tooling/Transformer/Transformer.h"
-#include <iostream>
-#include <llvm-14/llvm/Support/raw_ostream.h>
-#include <sstream>
+#include "utils.hpp"
 
 using namespace clang::ast_matchers;
 
 namespace clang {
 namespace tidy {
 namespace modernize {
-template <typename T>
-llvm::StringRef getExprAsString(SourceManager &Sm, const T &Ex) {
-
-  auto Range = Ex.getSourceRange();
-
-  clang::LangOptions Lo;
-  // get the text from lexer including newlines and other formatting?
-
-  auto StartLoc = Sm.getSpellingLoc(Range.getBegin());
-  auto LastTokenLoc = Sm.getSpellingLoc(Range.getEnd());
-  auto EndLoc = clang::Lexer::getLocForEndOfToken(LastTokenLoc, 0, Sm, Lo);
-  auto PrintableRange = clang::SourceRange{StartLoc, EndLoc};
-  auto Str = clang::Lexer::getSourceText(
-      clang::CharSourceRange::getCharRange(PrintableRange), Sm,
-      clang::LangOptions());
-  return Str;
-}
 
 void ReorderCtorInitializer::registerMatchers(MatchFinder *Finder) {
-
   auto Matcher = cxxRecordDecl(isExpansionInMainFile(),
                                hasDescendant(cxxCtorInitializer()))
                      .bind("class_with_ctor_init");
@@ -113,7 +97,6 @@ void ReorderCtorInitializer::check(const MatchFinder::MatchResult &Result) {
         auto End = InitOrder[InitOrder.size() - 1]->getSourceRange().getEnd();
         auto Diag = diag(Begin, "Write in field declaration order instead",
                          DiagnosticIDs::Warning);
-        auto Expand = Result.SourceManager->getExpansionRange(Begin);
         Diag << FixItHint::CreateReplacement(SourceRange{Begin, End},
                                              FormatString);
       }
@@ -121,6 +104,6 @@ void ReorderCtorInitializer::check(const MatchFinder::MatchResult &Result) {
   }
 }
 
-} // namespace modernize
-} // namespace tidy
-} // namespace clang
+}  // namespace modernize
+}  // namespace tidy
+}  // namespace clang

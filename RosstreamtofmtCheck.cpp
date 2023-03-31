@@ -8,8 +8,6 @@
 
 #include "RosstreamtofmtCheck.h"
 
-#include <llvm-15/llvm/Support/raw_ostream.h>
-
 #include <iostream>
 #include <sstream>
 
@@ -21,6 +19,7 @@
 #include "clang/Tooling/Transformer/RangeSelector.h"
 #include "clang/Tooling/Transformer/RewriteRule.h"
 #include "clang/Tooling/Transformer/Transformer.h"
+#include "utils.hpp"
 
 using namespace clang::ast_matchers;
 
@@ -52,19 +51,21 @@ inline auto getLogExpression(T Matchers) {
 class FormatStringBuilder {
  public:
   FormatStringBuilder(clang::SourceManager &Sm, std::string LoggerName)
-      : Sm(Sm), LoggerTo{LoggerName} {}
+      : LoggerTo{LoggerName}, Sm(Sm) {}
   void addStringLiteral(const clang::StringLiteral &Sl) {
     auto Str = Sl.getString();
     FmtStringComponents.push_back(Str.str());
   }
   void addIntegerLiteral(const clang::IntegerLiteral &Il) {
-    FmtStringComponents.push_back(getExprAsString(Il).str());
+    FmtStringComponents.push_back(
+        clang::tidy::modernize::getExprAsString(Sm, Il).str());
   }
 
   void addFormatExpr(const clang::Expr &Ex) {
     // copy from start to end loc
     FmtStringComponents.push_back("{}");
-    FmtArgsComponents.push_back(getExprAsString(Ex).str());
+    FmtArgsComponents.push_back(
+        clang::tidy::modernize::getExprAsString(Sm, Ex).str());
   }
 
   std::string getFormatString() {
@@ -88,21 +89,6 @@ class FormatStringBuilder {
 
  private:
   std::string LoggerTo;
-  llvm::StringRef getExprAsString(const clang::Expr &Ex) {
-    auto Range = Ex.getSourceRange();
-
-    clang::LangOptions Lo;
-    // get the text from lexer including newlines and other formatting?
-
-    auto StartLoc = Sm.getSpellingLoc(Range.getBegin());
-    auto LastTokenLoc = Sm.getSpellingLoc(Range.getEnd());
-    auto EndLoc = clang::Lexer::getLocForEndOfToken(LastTokenLoc, 0, Sm, Lo);
-    auto PrintableRange = clang::SourceRange{StartLoc, EndLoc};
-    auto Str = clang::Lexer::getSourceText(
-        clang::CharSourceRange::getCharRange(PrintableRange), Sm,
-        clang::LangOptions());
-    return Str;
-  }
   clang::SourceManager &Sm;
   llvm::SmallVector<std::string> FmtStringComponents;
   llvm::SmallVector<std::string> FmtArgsComponents;
